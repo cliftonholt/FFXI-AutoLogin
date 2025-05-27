@@ -46,6 +46,9 @@ WARNING: This will open you up to a little more risk if your PC is compromised a
   FFXI-Launcher.exe --character NAME
   ```
   Replace `NAME` with the character name you set up in the config.
+- While the application is logging you in, your mouse and keyboard will be locked to prevent interfering with the process. This should only last about 5 seconds.
+
+
 
 ### 4. Launching Multiple Accounts (Batch File)
 You can create a batch file (e.g. `start.bat`) to launch multiple characters. Example:
