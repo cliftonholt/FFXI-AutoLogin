@@ -294,7 +294,7 @@ GlobalConfig loadConfig(const std::string& path) {
     }
     try {
         json j = json::parse(content);
-        config.delay = j.value("delay", 1000);
+        config.delay = j.value("delay", 3000);
         config.POLProxy = true;
         if (j.contains("accounts")) {
             for (const auto& acc : j["accounts"]) {
@@ -317,7 +317,7 @@ void setupConfig(GlobalConfig& config) {
     std::cout << "\nCreated by: jaku  |  https://twitter.com/jaku\n";
     std::cout << "Setting up FFXI AutoLogin configuration\n";
     std::string input;
-    std::cout << "Delay before input starts (in seconds, default 1. Some PCs may need this to be higher.): ";
+    std::cout << "Delay before input starts (in seconds, default 3): ";
     std::getline(std::cin, input);
     if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
         int val = std::stoi(input);
@@ -749,6 +749,134 @@ void startProxyServer() {
     WSACleanup();
 }
 
+bool editConfig(GlobalConfig& config) {
+    std::string input;
+    while (true) {
+        std::cout << "\nEdit Configuration Menu:\n";
+        std::cout << "  [E] Edit existing character\n";
+        std::cout << "  [A] Add new character\n";
+        std::cout << "  [D] Delete character\n";
+        std::cout << "  [C] Modify timeout\n";
+        std::cout << "  [X] Exit to selection screen\n";
+        std::cout << "Enter option: ";
+        std::getline(std::cin, input);
+        // Convert input to lowercase
+        std::transform(input.begin(), input.end(), input.begin(), ::tolower);
+        if (input == "e") {
+            if (config.accounts.empty()) {
+                std::cout << "No characters to edit.\n";
+                continue;
+            }
+            std::cout << "\nSelect a character to edit:\n";
+            for (size_t i = 0; i < config.accounts.size(); ++i) {
+                std::cout << "  [" << (i + 1) << "] " << config.accounts[i].name << " (slot " << config.accounts[i].slot << ")\n";
+            }
+            std::cout << "Enter number (1-" << config.accounts.size() << "): ";
+            std::getline(std::cin, input);
+            if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
+                int choice = std::stoi(input);
+                if (choice >= 1 && (size_t)choice <= config.accounts.size()) {
+                    AccountConfig& acc = config.accounts[choice - 1];
+                    std::cout << "Editing character: " << acc.name << "\n";
+                    std::cout << "Current name: " << acc.name << "\n";
+                    std::cout << "New name (leave empty to keep current): ";
+                    std::getline(std::cin, input);
+                    if (!input.empty()) {
+                        acc.name = input;
+                    }
+                    std::cout << "Current password: " << acc.password << "\n";
+                    std::cout << "New password (leave empty to keep current): ";
+                    std::getline(std::cin, input);
+                    if (!input.empty()) {
+                        acc.password = input;
+                    }
+                    std::cout << "Current TOTP secret: " << acc.totpSecret << "\n";
+                    std::cout << "New TOTP secret (leave empty to keep current): ";
+                    std::getline(std::cin, input);
+                    if (!input.empty()) {
+                        acc.totpSecret = input;
+                    }
+                    std::cout << "Current slot: " << acc.slot << "\n";
+                    std::cout << "New slot (1-4, leave empty to keep current): ";
+                    std::getline(std::cin, input);
+                    if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
+                        int slot = std::stoi(input);
+                        if (slot >= 1 && slot <= 4) {
+                            acc.slot = slot;
+                        }
+                    }
+                    std::cout << "Current Windower arguments: " << acc.args << "\n";
+                    std::cout << "New Windower arguments (leave empty to keep current): ";
+                    std::getline(std::cin, input);
+                    if (!input.empty()) {
+                        acc.args = input;
+                    }
+                    std::cout << "Character updated.\n";
+                }
+            }
+        } else if (input == "a") {
+            AccountConfig newAcc;
+            std::cout << "\nAdding new character:\n";
+            std::cout << "Character name (no spaces, unique): ";
+            std::getline(std::cin, newAcc.name);
+            std::cout << "Password: ";
+            std::getline(std::cin, newAcc.password);
+            std::cout << "TOTP Secret (leave empty if not using): ";
+            std::getline(std::cin, newAcc.totpSecret);
+            std::cout << "Slot number (1-4): ";
+            std::getline(std::cin, input);
+            if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
+                int slot = std::stoi(input);
+                if (slot >= 1 && slot <= 4) {
+                    newAcc.slot = slot;
+                }
+            }
+            std::cout << "Windower arguments (e.g. -p=\"ProfileName\" leave empty for none): ";
+            std::getline(std::cin, newAcc.args);
+            config.accounts.push_back(newAcc);
+            std::cout << "New character added.\n";
+        } else if (input == "d") {
+            if (config.accounts.empty()) {
+                std::cout << "No characters to delete.\n";
+                continue;
+            }
+            std::cout << "\nSelect a character to delete:\n";
+            for (size_t i = 0; i < config.accounts.size(); ++i) {
+                std::cout << "  [" << (i + 1) << "] " << config.accounts[i].name << " (slot " << config.accounts[i].slot << ")\n";
+            }
+            std::cout << "Enter number (1-" << config.accounts.size() << "): ";
+            std::getline(std::cin, input);
+            if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
+                int choice = std::stoi(input);
+                if (choice >= 1 && (size_t)choice <= config.accounts.size()) {
+                    std::cout << "Are you sure you want to delete " << config.accounts[choice - 1].name << "? (y/n): ";
+                    std::getline(std::cin, input);
+                    if (input == "y" || input == "Y") {
+                        config.accounts.erase(config.accounts.begin() + choice - 1);
+                        std::cout << "Character deleted.\n";
+                    }
+                }
+            }
+        } else if (input == "c") {
+            std::cout << "Current timeout: " << config.delay / 1000 << " seconds\n";
+            std::cout << "New timeout (in seconds, 1-20): ";
+            std::getline(std::cin, input);
+            if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
+                int val = std::stoi(input);
+                if (val >= 1 && val <= 20) {
+                    config.delay = val * 1000;
+                    std::cout << "Timeout updated.\n";
+                }
+            }
+        } else if (input == "x") {
+            return false; // Return to selection screen
+        } else {
+            std::cout << "Invalid option. Try again.\n";
+        }
+    }
+    return true; // Exit the app
+}
+
 int main(int argc, char* argv[]) {
     std::cout << "Created by: jaku  |  https://twitter.com/jaku\n";
     char exePath[MAX_PATH];
@@ -758,12 +886,15 @@ int main(int argc, char* argv[]) {
     std::string configPath = baseDir + "\\config.json";
     GlobalConfig config = loadConfig(configPath);
     bool setupMode = false;
+    bool editMode = false;
     std::string characterName;
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--setup") {
             setupMode = true;
+        } else if (arg == "--edit") {
+            editMode = true;
         } else if (arg == "--character" && i + 1 < argc) {
             characterName = argv[++i];
         }
@@ -774,52 +905,81 @@ int main(int argc, char* argv[]) {
         std::cout << "Setup complete. Exiting.\n";
         return 0;
     }
+    if (editMode) {
+        std::cout << "Editing configuration...\n";
+        editConfig(config);
+        writeConfigFile(configPath, config);
+        std::cout << "Configuration updated. Exiting.\n";
+        return 0;
+    }
     if (config.accounts.empty()) {
         std::cout << "No accounts configured. Please run with --setup to configure accounts.\n";
         return 1;
     }
-    // If more than one account and no character specified, prompt user
-    if (characterName.empty() && config.accounts.size() > 1) {
-        std::cout << "\nSelect a character to log in with:\n";
-        for (size_t i = 0; i < config.accounts.size(); ++i) {
-            std::cout << "  [" << (i + 1) << "] " << config.accounts[i].name << " (slot " << config.accounts[i].slot << ")\n";
-        }
-        std::string input;
-        int choice = 0;
-        while (true) {
-            std::cout << "Enter number (1-" << config.accounts.size() << "): ";
-            std::getline(std::cin, input);
-            if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
-                choice = std::stoi(input);
-                if (choice >= 1 && (size_t)choice <= config.accounts.size()) {
-                    characterName = config.accounts[choice - 1].name;
-                    break;
-                }
+    // Main loop for character selection and editing
+    while (true) {
+        // If more than one account and no character specified, prompt user
+        if (characterName.empty() && config.accounts.size() > 1) {
+            std::cout << "\nSelect a character to log in with:\n";
+            for (size_t i = 0; i < config.accounts.size(); ++i) {
+                std::cout << "  [" << (i + 1) << "] " << config.accounts[i].name << " (slot " << config.accounts[i].slot << ")\n";
             }
-            std::cout << "Invalid choice. Try again.\n";
+            std::cout << "  [E] Edit configuration\n";
+            std::string input;
+            int choice = 0;
+            while (true) {
+                std::cout << "Enter number (1-" << config.accounts.size() << ") or 'E' to edit configuration: ";
+                std::getline(std::cin, input);
+                std::string lowerInput = input;
+                std::transform(lowerInput.begin(), lowerInput.end(), lowerInput.begin(), ::tolower);
+                if (lowerInput == "e") {
+                    if (!editConfig(config)) {
+                        writeConfigFile(configPath, config);
+                        // After editing, reload config and restart selection
+                        config = loadConfig(configPath);
+                        break; // break inner while, return to selection
+                    } else {
+                        writeConfigFile(configPath, config);
+                        std::cout << "Configuration updated. Exiting.\n";
+                        return 0;
+                    }
+                }
+                if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
+                    choice = std::stoi(input);
+                    if (choice >= 1 && (size_t)choice <= config.accounts.size()) {
+                        characterName = config.accounts[choice - 1].name;
+                        break;
+                    }
+                }
+                std::cout << "Invalid choice. Try again.\n";
+            }
+            if (characterName.empty()) {
+                continue; // Go back to selection if editConfig returned
+            }
         }
-    }
-    // Always start proxy server
-    std::thread proxyThread(startProxyServer);
-    // Find the account to launch
-    AccountConfig* toLaunch = nullptr;
-    if (characterName.empty()) {
-        // Default: launch the first slot
-        for (auto& acc : config.accounts) {
-            if (acc.slot == 1) { toLaunch = &acc; break; }
+        // Always start proxy server
+        std::thread proxyThread(startProxyServer);
+        // Find the account to launch
+        AccountConfig* toLaunch = nullptr;
+        if (characterName.empty()) {
+            // Default: launch the first slot
+            for (auto& acc : config.accounts) {
+                if (acc.slot == 1) { toLaunch = &acc; break; }
+            }
+        } else {
+            for (auto& acc : config.accounts) {
+                if (_stricmp(acc.name.c_str(), characterName.c_str()) == 0) { toLaunch = &acc; break; }
+            }
         }
-    } else {
-        for (auto& acc : config.accounts) {
-            if (_stricmp(acc.name.c_str(), characterName.c_str()) == 0) { toLaunch = &acc; break; }
+        if (!toLaunch) {
+            std::cout << "No account found for requested character name.\n";
+            return 1;
         }
+        launchAccount(*toLaunch, config);
+        // Wait for a request, then exit
+        while (!shouldExit) { Sleep(100); }
+        proxyThread.join();
+        return 0;
     }
-    if (!toLaunch) {
-        std::cout << "No account found for requested character name.\n";
-        return 1;
-    }
-    launchAccount(*toLaunch, config);
-    // Wait for a request, then exit
-    while (!shouldExit) { Sleep(100); }
-    proxyThread.join();
     return 0;
 }
