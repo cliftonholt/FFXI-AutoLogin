@@ -38,7 +38,7 @@ You will still want to register your new QR code in your authenicator app, but t
 WARNING: This will open you up to a little more risk if your PC is compromised as your login info and 2FA secret would now be stored on the PC. But who really wants your FFXI account in 2025?
 
 ### 3. Subsequent Runs: Login
-- Run `FFXI-Launcher.exe` again.
+- Run `FFXI-Launcher.exe` again this time as admin.
 - If you have more than one character, you will be prompted to select which one to log in with.
 - If you only have one character, it will log in with that one automatically.
 - You can also skip the prompt by running:
