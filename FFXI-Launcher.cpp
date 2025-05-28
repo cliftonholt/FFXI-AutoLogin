@@ -582,7 +582,7 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     keybd_event(VK_MENU, 0, 0, 0);
     keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);
 
-    //Sleep(config.delay);
+    Sleep(config.delay);
     // Extra focus before input
     SetForegroundWindow(hwnd);
     SetActiveWindow(hwnd);
