@@ -263,7 +263,7 @@ GlobalConfig loadConfig(const std::string& path) {
 
 void setupConfig(GlobalConfig& config) {
     std::cout << "\nCreated by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version:  0.0.9  | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Version: 0.0.10  | https://github.com/jaku/FFXI-autoPOL\n";
     std::cout << "Setting up FFXI autoPOL configuration\n";
     std::string input;
     std::cout << "Delay before input starts (in seconds, default 3): ";
@@ -422,12 +422,26 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         serverAddr.sin_family = AF_INET;
         inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
         serverAddr.sin_port = htons(51304);
-        if (bind(testSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-            std::cerr << "POL Redirect won't work: Port 51304 is already in use.\n";
+        
+        // Set socket options before bind
+        int opt = 1;
+        if (setsockopt(testSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)) < 0) {
+            std::cerr << "setsockopt SO_REUSEADDR failed\n";
         } else {
-            portAvailable = true;
-            if (config.POLProxy) {
-                addHostsEntry("127.0.0.1");
+            // Try to set SO_EXCLUSIVEADDRUSE to false
+            opt = 0;
+            if (setsockopt(testSocket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&opt, sizeof(opt)) < 0) {
+                std::cerr << "setsockopt SO_EXCLUSIVEADDRUSE failed\n";
+            } else {
+                if (bind(testSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+                    DWORD error = WSAGetLastError();
+                    std::cerr << "POL Redirect won't work: Port 51304 is already in use (Error: " << error << ")\n";
+                } else {
+                    portAvailable = true;
+                    if (config.POLProxy) {
+                        addHostsEntry("127.0.0.1");
+                    }
+                }
             }
         }
         closesocket(testSocket); // Make sure to close the test socket
@@ -879,7 +893,11 @@ void removeHostsEntry() {
 // Update main to remove hosts entry before exiting
 int main(int argc, char* argv[]) {
     std::cout << "Created by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version:  0.0.9  | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Version: 0.0.10  | https://github.com/jaku/FFXI-autoPOL\n";
+    
+    // Clean up any existing hosts file entries at startup
+    removeHostsEntry();
+    
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
     PathRemoveFileSpecA(exePath);
