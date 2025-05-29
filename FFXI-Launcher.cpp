@@ -262,8 +262,6 @@ GlobalConfig loadConfig(const std::string& path) {
 }
 
 void setupConfig(GlobalConfig& config) {
-    std::cout << "\nCreated by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version: 0.0.10  | https://github.com/jaku/FFXI-autoPOL\n";
     std::cout << "Setting up FFXI autoPOL configuration\n";
     std::string input;
     std::cout << "Delay before input starts (in seconds, default 3): ";
