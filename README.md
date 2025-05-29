@@ -10,12 +10,12 @@ A simple tool to automate logging into Final Fantasy XI using either Windower or
 ## How to Use (Most Users)
 
 ### 1. Place the EXE
-- Put `FFXI-Launcher.exe` in the same folder as your `pol.exe` or `Windower.exe`.
+- Put `autoPOL.exe` in the same folder as your `pol.exe` or `Windower.exe`.
   - For Windower users, this is usually your Windower install folder.
   - For vanilla POL users, it's usually located in `C:\Program Files (x86)\PlayOnline\SquareEnix\PlayOnlineViewer`.
 
 ### 2. First Run: Setup
-- Run `FFXI-Launcher.exe` (double-click or from command line).
+- Run `autoPOL.exe` (double-click or from command line).
 - On first run, it will walk you through creating a `config.json` file:
   - You will enter a name for each character (no spaces, must be unique)
   - Password
@@ -38,15 +38,16 @@ You will still want to register your new QR code in your authenicator app, but t
 WARNING: This will open you up to a little more risk if your PC is compromised as your login info and 2FA secret would now be stored on the PC. But who really wants your FFXI account in 2025?
 
 ### 3. Subsequent Runs: Login
-- Run `FFXI-Launcher.exe` again this time as admin.
+- Run `autoPOL.exe` again this time as admin.
 - If you have more than one character, you will be prompted to select which one to log in with.
 - If you only have one character, it will log in with that one automatically.
 - You can also skip the prompt by running:
   ```
-  FFXI-Launcher.exe --character NAME
+  autoPOL.exe --character NAME
   ```
   Replace `NAME` with the character name you set up in the config.
 - While the application is logging you in, your mouse and keyboard will be locked to prevent interfering with the process. This should only last about 5 seconds.
+- If it lasts longer than expected you can press Windows + L, or Ctrl+Alt+Del to disable the lock and resume control of your keyboard and mouse!
 
 
 
@@ -54,9 +55,9 @@ WARNING: This will open you up to a little more risk if your PC is compromised a
 You can create a batch file (e.g. `start.bat`) to launch multiple characters. Example:
 
 ```
-FFXI-Launcher.exe --character jaku
+autoPOL.exe --character jaku
 timeout /t 10
-FFXI-Launcher.exe --character jaku_mule
+autoPOL.exe --character jaku_mule
 ```
 
 - Adjust the timeout as needed for your PC (10 seconds is a good starting point).
@@ -66,14 +67,14 @@ FFXI-Launcher.exe --character jaku_mule
 Some additional notes, if you have more than 4 characters this application can technically support this. Since you can store all of their details when you run the setup, however you will be responsible for managing your own login_w.bin files and setting them up in a way to use this application. But as an example you could have something like the following for the batch script.
 
 ```
-FFXI-Launcher.exe --character jaku
+autoPOL.exe --character jaku
 timeout /t 10
-FFXI-Launcher.exe --character jaku_mule
+autoPOL.exe --character jaku_mule
 timeout /t 5
 copy "C:\Program Files (x86)\PlayOnline\SquareEnix\PlayOnlineViewer\usr\all\login_w.bin" "C:\Program Files (x86)\PlayOnline\SquareEnix\PlayOnlineViewer\usr\all\login_w.bin.org"
 copy "C:\Program Files (x86)\PlayOnline\SquareEnix\PlayOnlineViewer\usr\all\other.bin" "C:\Program Files (x86)\PlayOnline\SquareEnix\PlayOnlineViewer\usr\all\login_w.bin"
 timeout /t 10
-FFXI-Launcher.exe --character jaku_new
+autoPOL.exe --character jaku_new
 
 ```
 
@@ -101,7 +102,7 @@ If you're on the Phoenix server, my main on there is Jakubowski, just waving hi 
    - httplib.h (header-only)
    - sha1.h (included)
 4. Build the project (Release x86 recommended).
-5. Place the resulting `FFXI-Launcher.exe` in your Windower or POL folder as above.
+5. Place the resulting `autoPOL.exe` in your Windower or POL folder as above.
 
 ---
 
