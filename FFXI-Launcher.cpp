@@ -47,19 +47,6 @@ struct GlobalConfig {
 #define SHA1_BLOCK_SIZE 64
 #define SHA1_DIGEST_LENGTH 20
 
-std::string readIni(const std::string& path, const std::string& key) {
-    std::ifstream file(path);
-    if (!file) return "";
-    std::string line;
-    while (std::getline(file, line)) {
-        auto pos = line.find('=');
-        if (pos == std::string::npos) continue;
-        std::string k = line.substr(0, pos), v = line.substr(pos + 1);
-        if (k == key) return v;
-    }
-    return "";
-}
-
 std::string base32_decode(const std::string& input) {
     const char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     std::vector<uint8_t> output;
@@ -179,18 +166,7 @@ void sendText(HWND hwnd, const std::string& text, int delay = 50) {
     }
 }
 
-bool isValidIP(const std::string& ip) {
-    int parts = 0;
-    std::istringstream ss(ip);
-    std::string token;
-    while (std::getline(ss, token, '.')) {
-        if (++parts > 4) return false;
-        int val = atoi(token.c_str());
-        if (val < 0 || val > 255) return false;
-    }
-    return parts == 4;
-}
-
+// Add back the addHostsEntry function
 void addHostsEntry(const std::string& ip) {
     std::ifstream in("C:\\Windows\\System32\\drivers\\etc\\hosts");
     std::string line;
@@ -202,34 +178,6 @@ void addHostsEntry(const std::string& ip) {
 
     std::ofstream out("C:\\Windows\\System32\\drivers\\etc\\hosts", std::ios::app);
     out << "\n" << ip << " wh000.pol.com #ffxi-autologin\n";
-}
-
-void removeHostsEntry() {
-    const char* path = "C:\\Windows\\System32\\drivers\\etc\\hosts";
-    const char* tmpPath = "C:\\Windows\\System32\\drivers\\etc\\hosts.tmp";
-
-    std::ifstream in(path);
-    std::ofstream out(tmpPath);
-
-    std::string line;
-    while (std::getline(in, line)) {
-        // Trim leading/trailing whitespace
-        std::string trimmed = line;
-        trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
-        trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
-
-        // Skip blank or matching lines
-        if (trimmed.empty() || trimmed.find("#ffxi-autologin") != std::string::npos)
-            continue;
-
-        out << line << "\n";
-    }
-
-    in.close();
-    out.close();
-
-    DeleteFileA(path);
-    MoveFileA(tmpPath, path);
 }
 
 // Define a struct for passing data to EnumWindowsProc
@@ -314,12 +262,15 @@ GlobalConfig loadConfig(const std::string& path) {
 }
 
 void setupConfig(GlobalConfig& config) {
-    std::cout << "\nCreated by: jaku  |  https://twitter.com/jaku\n";
-    std::cout << "Setting up FFXI AutoLogin configuration\n";
+    std::cout << "\nCreated by: jaku | https://twitter.com/jaku\n";
+    std::cout << "Version:  0.0.9  | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Setting up FFXI autoPOL configuration\n";
     std::string input;
     std::cout << "Delay before input starts (in seconds, default 3): ";
     std::getline(std::cin, input);
-    if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
+    if (input.empty()) {
+        config.delay = 3000; // Default to 3 seconds if nothing entered
+    } else if (std::all_of(input.begin(), input.end(), ::isdigit)) {
         int val = std::stoi(input);
         if (val >= 1 && val <= 20) config.delay = val * 1000;
     }
@@ -363,7 +314,7 @@ void setupConfig(GlobalConfig& config) {
         std::getline(std::cin, account.totpSecret);
         // Slot (1-4)
         while (true) {
-            std::cout << "Slot number (1-4): ";
+            std::cout << "POL Slot number (1-4): ";
             std::getline(std::cin, input);
             if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
                 int slot = std::stoi(input);
@@ -372,7 +323,7 @@ void setupConfig(GlobalConfig& config) {
                     break;
                 }
             }
-            std::cout << "Slot must be 1, 2, 3, or 4. Try again.\n";
+            std::cout << "POL Slot must be 1, 2, 3, or 4. Try again.\n";
         }
         std::cout << "Windower arguments (e.g. -p=\"ProfileName\" leave empty for none) ";
         std::getline(std::cin, account.args);
@@ -461,10 +412,26 @@ void defocusExistingPOL() {
 }
 
 void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
-    if (config.POLProxy) {
-        addHostsEntry("127.0.0.1");
+    // Check if the port can be opened
+    SOCKET testSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    bool portAvailable = false;
+    if (testSocket == INVALID_SOCKET) {
+        std::cerr << "Failed to create socket for port check.\n";
+    } else {
+        sockaddr_in serverAddr;
+        serverAddr.sin_family = AF_INET;
+        inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+        serverAddr.sin_port = htons(51304);
+        if (bind(testSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+            std::cerr << "POL Redirect won't work: Port 51304 is already in use.\n";
+        } else {
+            portAvailable = true;
+            if (config.POLProxy) {
+                addHostsEntry("127.0.0.1");
+            }
+        }
+        closesocket(testSocket); // Make sure to close the test socket
     }
-
 
     std::cout << "Launching character: " << account.name << std::endl;
 
@@ -495,8 +462,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         return;
     }
 
-    //std::cout << "Launched process with ID: " << pi.dwProcessId << "\n";
-
     // Convert username to wide string for window title
     std::wstring wUsername(account.name.begin(), account.name.end());
     HWND hwnd = nullptr;
@@ -524,7 +489,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         if (hProcess) {
             if (GetModuleFileNameExA(hProcess, NULL, windowPath, MAX_PATH)) {
                 polPath = windowPath;
-                //std::cout << "Found POL.exe through window handle: " << polPath << "\n";
             }
             CloseHandle(hProcess);
         }
@@ -547,8 +511,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     int loginWValue = getLoginWValue(polPath);
     if (loginWValue == -1) {
         std::cerr << "Failed to read login_w.bin, using default slot selection\n";
-    } else {
-        //std::cout << "Read slot value from login_w.bin: " << loginWValue << "\n";
     }
 
     // Wait for the window to have a title bar (WS_CAPTION)
@@ -558,19 +520,11 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         waitTitleBar++;
     }
 
-    // if (waitTitleBar >= 100) {
-    //     //std::wcout << L"[WARN] Window did not get a title bar in time! Proceeding anyway." << std::endl;
-    // } else {
-    //     //std::wcout << L"[INFO] Window has title bar, proceeding with focus and input." << std::endl;
-    // }
-
     // Logging before BlockInput(TRUE)
     DWORD winPid = 0;
     GetWindowThreadProcessId(hwnd, &winPid);
     wchar_t winTitle[256] = {0};
     GetWindowTextW(hwnd, winTitle, 256);
-    //std::wcout << L"[INFO] About to focus window HWND: 0x" << std::hex << (uintptr_t)hwnd
-    //           << L" | Title: '" << winTitle << L"' | PID: " << std::dec << winPid << std::endl;
 
     BlockInput(TRUE);
 
@@ -595,7 +549,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         if (targetSlot < loginWValue) {
             // If we want a lower slot than what's in the file, we need to press UP
             int upPresses = loginWValue - targetSlot;
-            //std::cout << "Need to press UP " << upPresses << " times to reach slot " << targetSlot << "\n";
             for (int i = 0; i < upPresses; ++i) {
                 simulateKey(VK_UP);
                 Sleep(200);
@@ -603,7 +556,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         } else if (targetSlot > loginWValue) {
             // If we want a higher slot than what's in the file, we need to press DOWN
             int downPresses = targetSlot - loginWValue;
-            //std::cout << "Need to press DOWN " << downPresses << " times to reach slot " << targetSlot << "\n";
             for (int i = 0; i < downPresses; ++i) {
                 simulateKey(VK_DOWN);
                 Sleep(200);
@@ -664,13 +616,9 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     CloseHandle(pi.hThread);
 }
 
-// Add a global vector to store accounts to launch
-std::vector<AccountConfig> accountsToLaunch;
-std::atomic<int> currentAccountIndex(0);
 std::atomic<bool> shouldExit(false);
 
 void startProxyServer() {
-    
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         std::cerr << "Server failed to start\n";
@@ -683,11 +631,20 @@ void startProxyServer() {
         WSACleanup();
         return;
     }
-    //std::cout << "Port opened successfully\n";
 
+    // Set socket options before bind
     int opt = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)) < 0) {
-        std::cerr << "setsockopt failed\n";
+        std::cerr << "setsockopt SO_REUSEADDR failed\n";
+        closesocket(serverSocket);
+        WSACleanup();
+        return;
+    }
+
+    // Try to set SO_EXCLUSIVEADDRUSE to false
+    opt = 0;
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&opt, sizeof(opt)) < 0) {
+        std::cerr << "setsockopt SO_EXCLUSIVEADDRUSE failed\n";
         closesocket(serverSocket);
         WSACleanup();
         return;
@@ -699,12 +656,26 @@ void startProxyServer() {
     serverAddr.sin_port = htons(51304);
 
     if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        std::cerr << "Bind failed with error: " << WSAGetLastError() << "\n";
+        DWORD error = WSAGetLastError();
+        std::cerr << "Bind failed with error: " << error << " (";
+        switch (error) {
+            case WSAEADDRINUSE:
+                std::cerr << "Port Address already in use";
+                break;
+            case WSAEACCES:
+                std::cerr << "Port Access denied";
+                break;
+            case WSAEINVAL:
+                std::cerr << "Port Invalid argument";
+                break;
+            default:
+                std::cerr << "Port Unknown error";
+        }
+        std::cerr << ")\n";
         closesocket(serverSocket);
         WSACleanup();
         return;
     }
-    //std::cout << "Port opened successfully to 127.0.0.1:51304\n";
 
     if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
         std::cerr << "Listen failed with error: " << WSAGetLastError() << "\n";
@@ -740,7 +711,6 @@ void startProxyServer() {
                                      "\r\n"
                                      "Not Found";
                 send(clientSocket, response.c_str(), response.length(), 0);
-                std::cout << "Sent 404 response\n";
             }
         }
         closesocket(clientSocket);
@@ -823,7 +793,7 @@ bool editConfig(GlobalConfig& config) {
             std::getline(std::cin, newAcc.password);
             std::cout << "TOTP Secret (leave empty if not using): ";
             std::getline(std::cin, newAcc.totpSecret);
-            std::cout << "Slot number (1-4): ";
+            std::cout << "POL Slot number (1-4): ";
             std::getline(std::cin, input);
             if (!input.empty() && std::all_of(input.begin(), input.end(), ::isdigit)) {
                 int slot = std::stoi(input);
@@ -877,8 +847,39 @@ bool editConfig(GlobalConfig& config) {
     return true; // Exit the app
 }
 
+// Add back the removeHostsEntry function
+void removeHostsEntry() {
+    const char* path = "C:\\Windows\\System32\\drivers\\etc\\hosts";
+    const char* tmpPath = "C:\\Windows\\System32\\drivers\\etc\\hosts.tmp";
+
+    std::ifstream in(path);
+    std::ofstream out(tmpPath);
+
+    std::string line;
+    while (std::getline(in, line)) {
+        // Trim leading/trailing whitespace
+        std::string trimmed = line;
+        trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+        trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
+
+        // Skip blank or matching lines
+        if (trimmed.empty() || trimmed.find("#ffxi-autologin") != std::string::npos)
+            continue;
+
+        out << line << "\n";
+    }
+
+    in.close();
+    out.close();
+
+    DeleteFileA(path);
+    MoveFileA(tmpPath, path);
+}
+
+// Update main to remove hosts entry before exiting
 int main(int argc, char* argv[]) {
-    std::cout << "Created by: jaku  |  https://twitter.com/jaku\n";
+    std::cout << "Created by: jaku | https://twitter.com/jaku\n";
+    std::cout << "Version:  0.0.9  | https://github.com/jaku/FFXI-autoPOL\n";
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
     PathRemoveFileSpecA(exePath);
@@ -979,6 +980,8 @@ int main(int argc, char* argv[]) {
         // Wait for a request, then exit
         while (!shouldExit) { Sleep(100); }
         proxyThread.join();
+        // Remove hosts entry before exiting
+        removeHostsEntry();
         return 0;
     }
     return 0;
