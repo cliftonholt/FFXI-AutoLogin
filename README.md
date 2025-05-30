@@ -106,4 +106,42 @@ If you're on the Phoenix server, my main on there is Jakubowski, just waving hi 
 
 ---
 
+## Troubleshooting
+
+### Login Issues
+
+- **Partial Character Entry**: If the program only enters some characters of your password, try increasing the delay in your configuration. Start by adding 1-2 seconds at a time until it works reliably.
+- **Controller Interference**: Some users have reported that having the controller enabled can cause key entry issues. Try disabling controller support to see if the error persists. (Controller support should work)
+- **Auto-Login in POL**: While the program supports auto-login, it's recommended to disable auto-login in the POL window as it can be unreliable. The program will handle the login process more reliably without auto-login.
+- **Locked keyboard/mouse**: If the application locks your keyboard and mouse and you can't control it after a long time, you can always press CTRL+ALT+DEL to regain control.
+
+### Linux/Steam Deck Users
+
+If you're using Linux or Steam Deck, you'll need to manually add an entry to your hosts file to get the autoPOL login to fully log you into the game after entering your password:
+
+```bash
+sudo echo "127.0.0.1 wh000.pol.com" >> /etc/hosts
+```
+
+To remove this entry when you no longer want to use the program:
+
+```bash
+sudo sed -i '/wh000.pol.com/d' /etc/hosts
+```
+
+Note: While this entry is in your hosts file, you must use this program to log in, or login will fail. 
+
+Windows users do not need to do this.
+
+### Reporting Issues
+
+When reporting issues, please include:
+- Your version of autoPOL (try to use the latest version)
+- Your configuration details (delay settings, etc.)
+- Your operating system (Windows/Linux/Steam Deck)
+- What you've tried to resolve the issue
+- Any error messages you've received
+
+---
+
 Enjoy! 

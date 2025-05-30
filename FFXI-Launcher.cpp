@@ -525,24 +525,7 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         std::cerr << "Failed to read login_w.bin, using default slot selection\n";
     }
 
-    // Check for auto-login status
-    std::ifstream loginWFile(polPath + "\\usr\\all\\login_w.bin", std::ios::binary);
-    bool autoLoginEnabled = false;
-    if (loginWFile) {
-        loginWFile.seekg(0x6F);
-        unsigned char autoLoginValue;
-        loginWFile.read(reinterpret_cast<char*>(&autoLoginValue), 1);
-        autoLoginEnabled = (autoLoginValue != 0x00);
-        
-        // If auto-login is enabled, check if the slot matches
-        if (autoLoginEnabled && loginWValue != -1 && loginWValue != account.slot) {
-            std::cout << "\nWARNING: Auto-login is enabled for slot " << loginWValue 
-                      << " but you selected slot " << account.slot << ".\n"
-                      << "The wrong character may be logged in.\n"
-                      << "Waiting 5 seconds before continuing...\n";
-            Sleep(5000);
-        }
-    }
+
 
     // Wait for the window to have a title bar (WS_CAPTION)
     int waitTitleBar = 0;
@@ -573,6 +556,31 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     SetActiveWindow(hwnd);
     SetFocus(hwnd);
     BringWindowToTop(hwnd);
+
+
+    // Check for auto-login status
+    std::ifstream loginWFile(polPath + "\\usr\\all\\login_w.bin", std::ios::binary);
+    bool autoLoginEnabled = false;
+    if (loginWFile) {
+        loginWFile.seekg(0x6F);
+        unsigned char autoLoginValue;
+        loginWFile.read(reinterpret_cast<char*>(&autoLoginValue), 1);
+        autoLoginEnabled = (autoLoginValue != 0x00);
+        
+        // If auto-login is enabled, check if the slot matches
+        if (autoLoginEnabled && loginWValue != -1 && loginWValue != account.slot) {
+            std::cout << "\nWARNING: Auto-login is enabled for slot " << loginWValue 
+                      << " but you selected slot " << account.slot << ".\n";
+
+            autoLoginEnabled = false;
+
+            // Press ESC to cancel auto-login
+            simulateKey(VK_ESCAPE);
+            Sleep(1300);
+ 
+        }
+    }
+
 
     // Adjust slot selection based on login_w.bin value
     if (loginWValue != -1) {
@@ -916,7 +924,7 @@ void removeHostsEntry() {
 // Update main to remove hosts entry before exiting
 int main(int argc, char* argv[]) {
     std::cout << "Created by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version: 0.0.10  | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Version:  0.0.12 | https://github.com/jaku/FFXI-autoPOL\n";
     
     // Clean up any existing hosts file entries at startup
     removeHostsEntry();
