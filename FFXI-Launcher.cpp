@@ -525,6 +525,25 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         std::cerr << "Failed to read login_w.bin, using default slot selection\n";
     }
 
+    // Check for auto-login status
+    std::ifstream loginWFile(polPath + "\\usr\\all\\login_w.bin", std::ios::binary);
+    bool autoLoginEnabled = false;
+    if (loginWFile) {
+        loginWFile.seekg(0x6F);
+        unsigned char autoLoginValue;
+        loginWFile.read(reinterpret_cast<char*>(&autoLoginValue), 1);
+        autoLoginEnabled = (autoLoginValue != 0x00);
+        
+        // If auto-login is enabled, check if the slot matches
+        if (autoLoginEnabled && loginWValue != -1 && loginWValue != account.slot) {
+            std::cout << "\nWARNING: Auto-login is enabled for slot " << loginWValue 
+                      << " but you selected slot " << account.slot << ".\n"
+                      << "The wrong character may be logged in.\n"
+                      << "Waiting 5 seconds before continuing...\n";
+            Sleep(5000);
+        }
+    }
+
     // Wait for the window to have a title bar (WS_CAPTION)
     int waitTitleBar = 0;
     while (!(GetWindowLong(hwnd, GWL_STYLE) & WS_CAPTION) && waitTitleBar < 100) { // up to 10s
@@ -588,12 +607,18 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     SetFocus(hwnd);
     BringWindowToTop(hwnd);
 
+
+ 
+    // Skip these returns if auto-login is enabled
+    if (!autoLoginEnabled) {
     Sleep(200);
     simulateKey(VK_RETURN);
     Sleep(200);
     simulateKey(VK_RETURN);
     Sleep(300);
     simulateKey(VK_RETURN);
+    }
+
     Sleep(500);
     simulateKey(VK_RETURN);
     Sleep(500);
@@ -979,9 +1004,14 @@ int main(int argc, char* argv[]) {
         // Find the account to launch
         AccountConfig* toLaunch = nullptr;
         if (characterName.empty()) {
-            // Default: launch the first slot
-            for (auto& acc : config.accounts) {
-                if (acc.slot == 1) { toLaunch = &acc; break; }
+            // If only one account exists, use it regardless of slot
+            if (config.accounts.size() == 1) {
+                toLaunch = &config.accounts[0];
+            } else {
+                // If multiple accounts, we should have already prompted for selection
+                // This is just a fallback
+                std::cout << "No account selected. Please specify a character name.\n";
+                return 1;
             }
         } else {
             for (auto& acc : config.accounts) {
