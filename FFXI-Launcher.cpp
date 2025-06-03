@@ -615,8 +615,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     SetFocus(hwnd);
     BringWindowToTop(hwnd);
 
-
- 
     // Skip these returns if auto-login is enabled
     if (!autoLoginEnabled) {
     Sleep(200);
@@ -627,6 +625,12 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     simulateKey(VK_RETURN);
     }
 
+    Sleep(200);
+    simulateKey(VK_RETURN);
+    Sleep(200);
+    simulateKey(VK_RETURN);
+    Sleep(300);
+    simulateKey(VK_RETURN);
     Sleep(500);
     simulateKey(VK_RETURN);
     Sleep(500);
@@ -637,20 +641,20 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     simulateKey(VK_RETURN);
     Sleep(500);
     simulateKey(VK_DOWN);
-    Sleep(400);
+    Sleep(300);
 
     if (!account.totpSecret.empty()) {
         simulateKey(VK_RETURN);
         std::string totp = generate_totp(account.totpSecret);
         sendText(hwnd, totp, 5);
         simulateKey(VK_ESCAPE);
-        Sleep(200);
+        Sleep(100);
         simulateKey(VK_DOWN);
-        Sleep(200);
+        Sleep(100);
     }
 
     simulateKey(VK_RETURN);
-    Sleep(100);
+    Sleep(50);
 
     simulateKey(VK_RETURN);
     Sleep(500);
@@ -924,7 +928,7 @@ void removeHostsEntry() {
 // Update main to remove hosts entry before exiting
 int main(int argc, char* argv[]) {
     std::cout << "Created by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version:  0.0.13 | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Version:  0.0.14 | https://github.com/jaku/FFXI-autoPOL\n";
     
     // Clean up any existing hosts file entries at startup
     removeHostsEntry();
