@@ -27,6 +27,14 @@ A simple tool to automate logging into Final Fantasy XI using either Windower or
 If you use a one-time password (TOTP) for your FFXI account, you will need the secret key:
 
 1. **Remove your current authenticator** from your Square Enix account.
+2. **Register a new authenticator**. When you get to the QR code select "Can't stand this image"
+3. Copy the secret provided on that page and use this value as your TOTP secret in the launcher setup.
+4. Done!
+
+Note: If you use any TOTP generator that remembers the secret (such as bitwarden), you can just copy that secret and do not need to forget the old one.
+
+### Older steps on how to get your TOTP Secret
+1. **Remove your current authenticator** from your Square Enix account.
 2. **Register a new authenticator**. When you get to the QR code step, **save the QR code as a PNG file**.
 3. Go to: [https://iamyuthan.github.io/2FA-Solver/2FA-Solver.html](https://iamyuthan.github.io/2FA-Solver/2FA-Solver.html)
 4. Click on **QR Code (Image) Scanner/Decoder**.
