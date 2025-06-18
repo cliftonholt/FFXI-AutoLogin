@@ -119,6 +119,7 @@ If you're on the Phoenix server, my main on there is Jakubowski, just waving hi 
 ### Login Issues
 
 - **Partial Character Entry**: If the program only enters some characters of your password, try increasing the delay in your configuration. Start by adding 1-2 seconds at a time until it works reliably.
+- **Starting 0 character**: If you notice the cursor when going to the password screen is starting on 0, and it's entering it as your password. Update your password to include the 0 (as a quick workaround) or try and adjust your timing as mentioned above.
 - **Controller Interference**: Some users have reported that having the controller enabled can cause key entry issues. Try disabling controller support to see if the error persists. (Controller support should work)
 - **Auto-Login in POL**: While the program supports auto-login, it's recommended to disable auto-login in the POL window as it can be unreliable. The program will handle the login process more reliably without auto-login.
 - **Locked keyboard/mouse**: If the application locks your keyboard and mouse and you can't control it after a long time, you can always press CTRL+ALT+DEL to regain control.
