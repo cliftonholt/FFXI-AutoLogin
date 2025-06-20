@@ -30,6 +30,31 @@
 
 using json = nlohmann::json;
 
+// Debug flag - set to true to enable key press logging
+bool DEBUG_KEY_PRESSES = false;
+
+// Helper function to get key name from virtual key code
+std::string getKeyName(WORD vk) {
+    switch (vk) {
+        case VK_RETURN: return "ENTER";
+        case VK_ESCAPE: return "ESC";
+        case VK_UP: return "UP";
+        case VK_DOWN: return "DOWN";
+        case VK_SHIFT: return "SHIFT";
+        case VK_MENU: return "ALT";
+        default: return "*";  // Mask all other keys
+    }
+}
+
+// Helper function to log key presses
+void logKeyPress(WORD vk, bool isKeyUp = false) {
+    if (!DEBUG_KEY_PRESSES) return;
+    
+    std::string action = isKeyUp ? "Released" : "Pressed";
+    std::string keyName = getKeyName(vk);
+    std::cout << "[Key] " << action << " " << keyName << std::endl;
+}
+
 struct AccountConfig {
     std::string name;
     std::string password;
@@ -135,19 +160,23 @@ void simulateKey(WORD vk, bool shift = false) {
     if (shift) {
         inputs[count].type = INPUT_KEYBOARD;
         inputs[count].ki.wVk = VK_SHIFT;
+        logKeyPress(VK_SHIFT);
         count++;
     }
     inputs[count].type = INPUT_KEYBOARD;
     inputs[count].ki.wVk = vk;
+    logKeyPress(vk);
     count++;
     inputs[count].type = INPUT_KEYBOARD;
     inputs[count].ki.wVk = vk;
     inputs[count].ki.dwFlags = KEYEVENTF_KEYUP;
+    logKeyPress(vk, true);
     count++;
     if (shift) {
         inputs[count].type = INPUT_KEYBOARD;
         inputs[count].ki.wVk = VK_SHIFT;
         inputs[count].ki.dwFlags = KEYEVENTF_KEYUP;
+        logKeyPress(VK_SHIFT, true);
         count++;
     }
     SendInput(count, inputs, sizeof(INPUT));
@@ -155,6 +184,9 @@ void simulateKey(WORD vk, bool shift = false) {
 }
 
 void sendText(HWND hwnd, const std::string& text, int delay = 50) {
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Text] Sending " << text.length() << " characters: " << std::string(text.length(), '*') << std::endl;
+    }
     for (char c : text) {
         SHORT vk = VkKeyScanA(c);
         if (vk == -1) continue;
@@ -525,8 +557,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
         std::cerr << "Failed to read login_w.bin, using default slot selection\n";
     }
 
-
-
     // Wait for the window to have a title bar (WS_CAPTION)
     int waitTitleBar = 0;
     while (!(GetWindowLong(hwnd, GWL_STYLE) & WS_CAPTION) && waitTitleBar < 100) { // up to 10s
@@ -557,7 +587,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     SetFocus(hwnd);
     BringWindowToTop(hwnd);
 
-
     // Check for auto-login status
     std::ifstream loginWFile(polPath + "\\usr\\all\\login_w.bin", std::ios::binary);
     bool autoLoginEnabled = false;
@@ -580,7 +609,6 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
  
         }
     }
-
 
     // Adjust slot selection based on login_w.bin value
     if (loginWValue != -1) {
@@ -634,6 +662,16 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     Sleep(500);
     simulateKey(VK_RETURN);
     Sleep(500);
+
+    // send some backspace keys just incase we press enter a few times on the 0 key
+    simulateKey(VK_BACK);
+    Sleep(25);
+    simulateKey(VK_BACK);
+    Sleep(25);
+    simulateKey(VK_BACK);
+    Sleep(25);
+    simulateKey(VK_BACK);
+    Sleep(25);
 
     sendText(hwnd, account.password, 5);
     Sleep(100);
@@ -928,7 +966,16 @@ void removeHostsEntry() {
 // Update main to remove hosts entry before exiting
 int main(int argc, char* argv[]) {
     std::cout << "Created by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version:  0.0.14 | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Version: 0.0.15  | https://github.com/jaku/FFXI-autoPOL\n";
+    DEBUG_KEY_PRESSES = false;
+    // Parse command line arguments
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--debug-keys") {
+            DEBUG_KEY_PRESSES = true;
+            std::cout << "Key press logging enabled\n";
+        }
+    }
     
     // Clean up any existing hosts file entries at startup
     removeHostsEntry();
