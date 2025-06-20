@@ -23,9 +23,17 @@ A simple tool to automate logging into Final Fantasy XI using either Windower or
   - Slot number (1-4)
   - (Optional) Windower arguments (e.g. `-p="ProfileName"`)
 
-#### How to get your TOTP Secret
+## How to get your TOTP Secret
 If you use a one-time password (TOTP) for your FFXI account, you will need the secret key:
 
+1. **Remove your current authenticator** from your Square Enix account.
+2. **Register a new authenticator**. When you get to the QR code select "Can't stand this image"
+3. Copy the secret provided on that page and use this value as your TOTP secret in the launcher setup.
+4. Done!
+
+Note: If you use any TOTP generator that remembers the secret (such as bitwarden), you can just copy that secret and do not need to forget the old one.
+
+#### Older steps on how to get your TOTP Secret
 1. **Remove your current authenticator** from your Square Enix account.
 2. **Register a new authenticator**. When you get to the QR code step, **save the QR code as a PNG file**.
 3. Go to: [https://iamyuthan.github.io/2FA-Solver/2FA-Solver.html](https://iamyuthan.github.io/2FA-Solver/2FA-Solver.html)
@@ -111,6 +119,7 @@ If you're on the Phoenix server, my main on there is Jakubowski, just waving hi 
 ### Login Issues
 
 - **Partial Character Entry**: If the program only enters some characters of your password, try increasing the delay in your configuration. Start by adding 1-2 seconds at a time until it works reliably.
+- **Starting 0 character**: If you notice the cursor when going to the password screen is starting on 0, and it's entering it as your password. Update your password to include the 0 (as a quick workaround) or try and adjust your timing as mentioned above.
 - **Controller Interference**: Some users have reported that having the controller enabled can cause key entry issues. Try disabling controller support to see if the error persists. (Controller support should work)
 - **Auto-Login in POL**: While the program supports auto-login, it's recommended to disable auto-login in the POL window as it can be unreliable. The program will handle the login process more reliably without auto-login.
 - **Locked keyboard/mouse**: If the application locks your keyboard and mouse and you can't control it after a long time, you can always press CTRL+ALT+DEL to regain control.
