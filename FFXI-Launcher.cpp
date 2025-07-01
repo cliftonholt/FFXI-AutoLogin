@@ -187,11 +187,18 @@ void sendText(HWND hwnd, const std::string& text, int delay = 50) {
     if (DEBUG_KEY_PRESSES) {
         std::cout << "[Text] Sending " << text.length() << " characters: " << std::string(text.length(), '*') << std::endl;
     }
+    
     for (char c : text) {
-        SHORT vk = VkKeyScanA(c);
+        // Convert char to wide char for ToUnicode
+        wchar_t wc = static_cast<wchar_t>(c);
+        
+        // Get the virtual key and shift state for this character
+        SHORT vk = VkKeyScanW(wc);
         if (vk == -1) continue;
+        
         bool shift = (vk & 0x0100) != 0;
         WORD vkCode = vk & 0xFF;
+        
         SetForegroundWindow(hwnd);
         simulateKey(vkCode, shift);
         Sleep(delay);
@@ -966,7 +973,7 @@ void removeHostsEntry() {
 // Update main to remove hosts entry before exiting
 int main(int argc, char* argv[]) {
     std::cout << "Created by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version: 0.0.15  | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Version: 0.0.16  | https://github.com/jaku/FFXI-autoPOL\n";
     DEBUG_KEY_PRESSES = false;
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
