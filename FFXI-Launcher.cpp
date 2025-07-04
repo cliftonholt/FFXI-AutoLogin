@@ -183,22 +183,101 @@ void simulateKey(WORD vk, bool shift = false) {
     Sleep(30);
 }
 
+void copyAndPasteText(HWND hwnd, const std::string& text) {
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Clipboard] Copying and pasting: " << std::string(text.length(), '*') << std::endl;
+    }
+    
+    // Save current clipboard content
+    std::string originalClipboard;
+    if (OpenClipboard(NULL)) {
+        HANDLE hData = GetClipboardData(CF_TEXT);
+        if (hData != NULL) {
+            char* pszText = static_cast<char*>(GlobalLock(hData));
+            if (pszText != NULL) {
+                originalClipboard = pszText;
+                GlobalUnlock(hData);
+            }
+        }
+        CloseClipboard();
+    }
+    
+    // Set text to clipboard
+    if (OpenClipboard(NULL)) {
+        EmptyClipboard();
+        HGLOBAL hGlob = GlobalAlloc(GMEM_FIXED, text.length() + 1);
+        if (hGlob != NULL) {
+            strcpy_s(static_cast<char*>(hGlob), text.length() + 1, text.c_str());
+            SetClipboardData(CF_TEXT, hGlob);
+        }
+        CloseClipboard();
+    }
+    
+    // Focus window
+    SetForegroundWindow(hwnd);
+    SetActiveWindow(hwnd);
+    SetFocus(hwnd);
+    BringWindowToTop(hwnd);
+    
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Timing] Waiting 50ms for window focus..." << std::endl;
+    }
+    Sleep(50); // Give window time to focus
+    
+    // Try PostMessage first (asynchronous)
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Paste] Sending PostMessage WM_PASTE" << std::endl;
+    }
+    PostMessage(hwnd, WM_PASTE, 0, 0);
+    
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Timing] Waiting 200ms after PostMessage..." << std::endl;
+    }
+    Sleep(200);
+    
+    // Try SendMessage (synchronous)
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Paste] Sending SendMessage WM_PASTE" << std::endl;
+    }
+    SendMessage(hwnd, WM_PASTE, 0, 0);
+    
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Timing] Waiting 200ms after SendMessage..." << std::endl;
+    }
+    Sleep(200);
+    
+    // If WM_PASTE didn't work, try keybd_event
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Key] Pressed CTRL (keybd_event)" << std::endl;
+        std::cout << "[Key] Pressed V (keybd_event)" << std::endl;
+    }
+    
+    keybd_event(VK_CONTROL, 0, 0, 0);
+    Sleep(10);
+    keybd_event('V', 0, 0, 0);
+    Sleep(10);
+    keybd_event('V', 0, KEYEVENTF_KEYUP, 0);
+    Sleep(10);
+    keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
+    
+    if (DEBUG_KEY_PRESSES) {
+        std::cout << "[Key] Released V (keybd_event)" << std::endl;
+        std::cout << "[Key] Released CTRL (keybd_event)" << std::endl;
+        std::cout << "[Timing] Waiting 500ms after paste..." << std::endl;
+    }
+    
+    Sleep(500);
+}
+
 void sendText(HWND hwnd, const std::string& text, int delay = 50) {
     if (DEBUG_KEY_PRESSES) {
         std::cout << "[Text] Sending " << text.length() << " characters: " << std::string(text.length(), '*') << std::endl;
     }
-    
     for (char c : text) {
-        // Convert char to wide char for ToUnicode
-        wchar_t wc = static_cast<wchar_t>(c);
-        
-        // Get the virtual key and shift state for this character
-        SHORT vk = VkKeyScanW(wc);
+        SHORT vk = VkKeyScanA(c);
         if (vk == -1) continue;
-        
         bool shift = (vk & 0x0100) != 0;
         WORD vkCode = vk & 0xFF;
-        
         SetForegroundWindow(hwnd);
         simulateKey(vkCode, shift);
         Sleep(delay);
@@ -680,8 +759,14 @@ void launchAccount(const AccountConfig& account, const GlobalConfig& config) {
     simulateKey(VK_BACK);
     Sleep(25);
 
-    sendText(hwnd, account.password, 5);
-    Sleep(100);
+    sendText(hwnd, "a", 5);
+    Sleep(25);
+    simulateKey(VK_BACK);
+
+    //sendText(hwnd, account.password, 5);
+    copyAndPasteText(hwnd, account.password);
+
+    Sleep(300);
 
     simulateKey(VK_RETURN);
     Sleep(500);
@@ -973,7 +1058,7 @@ void removeHostsEntry() {
 // Update main to remove hosts entry before exiting
 int main(int argc, char* argv[]) {
     std::cout << "Created by: jaku | https://twitter.com/jaku\n";
-    std::cout << "Version: 0.0.16  | https://github.com/jaku/FFXI-autoPOL\n";
+    std::cout << "Version: 0.0.18  | https://github.com/jaku/FFXI-autoPOL\n";
     DEBUG_KEY_PRESSES = false;
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
